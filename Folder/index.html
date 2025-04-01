@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        canvas { max-width: 800px; margin: auto; }
+        button { margin: 10px; padding: 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h2>Real-Time Shoe Movement Classification</h2>
+    <button onclick="showChart('line')">Line Chart</button>
+    <button onclick="showChart('bar')">Bar Chart</button>
+    <canvas id="chartCanvas"></canvas>
+    
+    <script>
+        const ctx = document.getElementById('chartCanvas').getContext('2d');
+        let chartType = 'line';
+        let chart;
+
+        function createChart(type, labels, datasets) {
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: type,
+                data: { labels, datasets },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function showChart(type) {
+            chartType = type;
+            createChart(chartType, labels, datasets);
+        }
+
+        const socket = io();
+        let labels = [];
+        let datasets = [
+            { label: 'Walk', data: [], borderColor: 'blue', backgroundColor: 'blue', fill: false },
+            { label: 'Run', data: [], borderColor: 'red', backgroundColor: 'red', fill: false },
+            { label: 'Jump', data: [], borderColor: 'green', backgroundColor: 'green', fill: false },
+            { label: 'Idle', data: [], borderColor: 'gray', backgroundColor: 'gray', fill: false }
+        ];
+
+        socket.on('update_data', (data) => {
+            labels.push(new Date(data.time).toLocaleTimeString());
+            if (labels.length > 20) labels.shift();
+            datasets.forEach((dataset, index) => {
+                dataset.data.push(data.movements[dataset.label.toLowerCase()]);
+                if (dataset.data.length > 20) dataset.data.shift();
+            });
+            createChart(chartType, labels, datasets);
+        });
+    </script>
+</body>
+</html>
